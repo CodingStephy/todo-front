@@ -3,10 +3,10 @@ import SinglePost from "./pages/SinglePost"
 import Form from './pages/Form'
 import React, {useState, useEffect} from "react"
 
-import {Route, Switch} from "react-router-dom"
+import {Route, Switch,Link} from "react-router-dom"
 
 
-function App() {
+function App(props) {
 //////////////
 /// style objects 
 /////////////
@@ -15,11 +15,21 @@ const h1 = {
   textAlign: "center",
   margin: "10px"
 }
+const button = {
+  background:"navy",
+  display:"block",
+  margin: "auto"
+}
 // API url 
 const url ="https://sl-628-django.herokuapp.com/todos/"
 
 // State to hold list of todos 
 const [posts, setPosts] = useState([])
+const nullTodo = {
+  subject: "",
+  details: ""
+}
+const [targetTodo, setTargetTodo] = useState(nullTodo)
 //////////////////////////
 // Functions
 //////////////////////////
@@ -29,6 +39,48 @@ const getTodos = async () => {
   setPosts(data)
 }
 
+const addTodos = async (newTodo) => {
+  const response = await fetch(url, {
+    method:"post",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(newTodo)
+  })
+
+  getTodos()
+}
+
+// Function to select todo to edit
+const getTargetTodo = (todo) => {
+  setTargetTodo(todo);
+  props.history.push("/edit");
+};
+
+// Function to edit todo on form submission
+const updateTodo = async (todo) => {
+  const response = await fetch(url + todo.id + "/", {
+    method: "put",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(todo),
+  });
+
+  // get updated list of todos
+  getTodos();
+};
+
+const deleteTodo = async (todo) => {
+  const response = await fetch(url + todo.id + "/", {
+    method:"delete"
+  })
+
+  getTodos()
+  props.history.push("/")
+}
+
+
 //use Effects 
 useEffect(() => {getTodos()}, [])
 
@@ -36,6 +88,7 @@ useEffect(() => {getTodos()}, [])
   return (
     <div className="App">
     <h1 style = {h1}>My Todo List</h1>
+    <Link to="/new"><button style ={button}>Create New Todo</button></Link>
     <Switch>
     <Route
           exact
@@ -44,15 +97,29 @@ useEffect(() => {getTodos()}, [])
         />
         <Route
           path="/post/:id"
-          render={(routerProps) => <SinglePost {...routerProps} posts={posts} />}
+          render={(routerProps) => <SinglePost 
+            {...routerProps} posts={posts} 
+            edit={getTargetTodo} 
+            deleteTodo={deleteTodo}
+          /> }
         />
-        <Route
+         <Route
           path="/new"
-          render={(routerProps) => <Form {...routerProps}/>}
+          render={(routerProps) => <Form 
+            {...routerProps}
+            initialTodo={nullTodo}
+            handleSubmit={addTodos}
+            buttonLabel="Create Todo"
+            />}
         />
-        <Route
+         <Route
           path="/edit"
-          render={(routerProps) => <Form {...routerProps}/>}
+          render={(routerProps) => <Form 
+            {...routerProps}
+            initialTodo={targetTodo}
+            handleSubmit={updateTodo}
+            buttonLabel="Update Todo"
+            />}
         />
     </Switch>
     </div>
